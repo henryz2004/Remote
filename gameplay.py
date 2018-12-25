@@ -202,11 +202,11 @@ class GameObject(Sprite):
             # Target is to the right of ship
             if right_projection >= 0:
                 self.rot_vel = max(-self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if right_projection > 40 else right_projection/40))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
+                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if right_projection > 100 else right_projection/100))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
             elif right_projection < 0:
                 self.rot_vel = min(self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if right_projection < -40 else right_projection/-40))  # TODO: FIX ADJUSTING BASED OFF TICK
+                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if right_projection < -100 else right_projection/-100))  # TODO: FIX ADJUSTING BASED OFF TICK
 
 
             # Calculate ship heading (where it's going)
