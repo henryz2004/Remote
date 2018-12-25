@@ -183,25 +183,19 @@ class GameObject(Sprite):
                 target_local_pos,
                 precomp_dist=target_dist
             )
-            print("RV:", list(map(lambda x: round(x, 4), right_vector)), "\tH:", list(map(lambda x: round(x, 4), heading)), "\tD:", vmath.dot(right_vector, heading))
-            #print("S:", round(slope, 2), "\tH:", list(map(lambda x: round(x, 4), heading)), "\tP:", round(projection, 4), "\tR:", int(self.rot), "\tT:", int(target_angle))
+            print("TA:", round(target_angle, 3))
 
             # Determine where the target is relative to self, either to the left or to the right by dotting to right_vector
             right_projection = vmath.dot(right_vector, target_local_pos)
 
-            # Turn the ship towards target_angle
-            # If target_angle is positive, target is to left of ship, negative = right of ship
-            if target_angle > 10:        # Turn left
-                self.rot_vel = max(-self.max_turn_rate*tick/1000, self.rot_vel - self.turn_rate*tick/1000)  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities)
+            # Target is to the right of ship
+            if right_projection >= 0:
+                self.rot_vel = min(self.max_turn_rate * tick / 1000,
+                                   self.rot_vel + self.turn_rate * tick / 1000)  # TODO: FIX ADJUSTING BASED OFF TICK
 
-            elif target_angle < -10:
-                self.rot_vel = min(self.max_turn_rate*tick/1000, self.rot_vel + self.turn_rate*tick/1000)  # TODO: FIX ADJUSTING BASED OFF TICK
-
-            elif 0 < target_angle < 10:
-                self.rot_vel = max(-target_angle*tick/1000, self.rot_vel - self.turn_rate*tick/1000)
-
-            elif -10 > target_angle > 0:
-                self.rot_vel = min(target_angle*tick/1000, self.rot_vel + self.turn_rate * tick / 1000)
+            elif right_projection < 0:
+                self.rot_vel = max(-self.max_turn_rate * tick / 1000,
+                                   self.rot_vel - self.turn_rate * tick / 1000)  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities)
 
             # Calculate ship heading (where it's going)
             speed = vmath.magnitude(self.vel)
