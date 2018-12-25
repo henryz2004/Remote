@@ -9,7 +9,6 @@ pygame.init()
 def render():
 
     screen.render((0, 0, 0))
-    pygame.display.flip()
 
 
 s = pygame.display.set_mode((1000, 750))
@@ -58,5 +57,6 @@ while running:
         if e.type == pygame.QUIT:
             running = False
 
-    test_fighter.tick(tick)
     render()
+    test_fighter.tick(tick, screen=s)
+    pygame.display.flip()

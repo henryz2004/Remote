@@ -76,7 +76,7 @@ class GameObject(Sprite):
                  thrusters=None,
                  timers=None):
 
-        super().__init__((0, 0, 0, 0), sprite_path)
+        super().__init__((0, 0, 0, 0), sprite_path)     # REL_POS should only have offset and no scaling
         GameObject.GAME_OBJECTS.add(self)
         self.surf = resize(self.surf, sprite_size)
 
@@ -144,7 +144,7 @@ class GameObject(Sprite):
 
         self.offset((0, offset[0], 0, offset[1]))
 
-    def tick(self, tick):
+    def tick(self, tick, screen=None):
 
         # Update timers
         for timer in self.timers:
@@ -160,9 +160,9 @@ class GameObject(Sprite):
                 if timer[2]:
                     timer[0] = 0
 
-        self.update_ship_controls(tick)
+        self.update_ship_controls(tick, screen=screen)
 
-    def update_ship_controls(self, tick):
+    def update_ship_controls(self, tick, screen=None):
 
         # If this unit actively seeks out enemy units
         if self.category == GameObject.ACTIVE:
@@ -183,19 +183,31 @@ class GameObject(Sprite):
                 target_local_pos,
                 precomp_dist=target_dist
             )
-            print("TA:", round(target_angle, 3))
 
             # Determine where the target is relative to self, either to the left or to the right by dotting to right_vector
             right_projection = vmath.dot(right_vector, target_local_pos)
 
+            print("TA:", round(target_angle, 3), "\tRV:", list(map(lambda x: round(x, 3), right_vector)), "\tRP:", round(right_projection))
+            # Visualize vectors if provided with drawing surface
+            if screen:
+                ap = self.calculate_absolute_position()
+                tap = target.calculate_absolute_position()
+
+                # Draw triangle connecting ship, right_projection, and target
+                pygame.draw.lines(screen, (200, 200, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 3)
+
+                pygame.draw.line(screen, (0, 255, 0), ap, (ap[0]+right_vector[0]*100, ap[1]+right_vector[1]*100), 3)      # Draw right vector
+                pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection))   # Draw right_projection
+
             # Target is to the right of ship
             if right_projection >= 0:
-                self.rot_vel = min(self.max_turn_rate * tick / 1000,
-                                   self.rot_vel + self.turn_rate * tick / 1000)  # TODO: FIX ADJUSTING BASED OFF TICK
+                self.rot_vel = max(-self.max_turn_rate * tick / 1000,
+                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if right_projection > 40 else right_projection/40))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
             elif right_projection < 0:
-                self.rot_vel = max(-self.max_turn_rate * tick / 1000,
-                                   self.rot_vel - self.turn_rate * tick / 1000)  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities)
+                self.rot_vel = min(self.max_turn_rate * tick / 1000,
+                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if right_projection < -40 else right_projection/-40))  # TODO: FIX ADJUSTING BASED OFF TICK
+
 
             # Calculate ship heading (where it's going)
             speed = vmath.magnitude(self.vel)
