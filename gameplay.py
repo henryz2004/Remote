@@ -188,23 +188,25 @@ class GameObject(Sprite):
             right_projection = vmath.dot(right_vector, target_local_pos)
 
             print("TA:", round(target_angle, 3), "\tRV:", list(map(lambda x: round(x, 3), right_vector)), "\tRP:", round(right_projection))
+
             # Visualize vectors if provided with drawing surface
+            ap = self.calculate_absolute_position()
+            tap = target.calculate_absolute_position()
+
             if screen:
-                ap = self.calculate_absolute_position()
-                tap = target.calculate_absolute_position()
+                pygame.draw.line(screen, (255, 255, 255), ap, (ap[0] + heading[0] * 150, ap[1] + heading[1] * 150), 4)                                                      # White = ship_heading
 
                 # Draw triangle connecting ship, right_projection, and target
-                pygame.draw.lines(screen, (200, 200, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 3)
-
-                pygame.draw.line(screen, (0, 255, 0), ap, (ap[0]+right_vector[0]*100, ap[1]+right_vector[1]*100), 3)      # Draw right vector
-                pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection))   # Draw right_projection
+                pygame.draw.lines(screen, (0, 0, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 4)               # Blue = ship - right_projection - target triangle
+                pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), 4)   # Draw right_projection   # Red = right_projection
+                pygame.draw.line(screen, (0, 255, 0), ap, (ap[0] + right_vector[0] * 100, ap[1] + right_vector[1] * 100), 3)  # Draw right vector                          # Green = right_vector
 
             # Target is to the right of ship
             if right_projection >= 0:
                 self.rot_vel = max(-self.max_turn_rate * tick / 1000,
                                    (self.rot_vel - self.turn_rate * tick / 1000) * (1 if right_projection > 100 else right_projection/100))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
-            elif right_projection < 0:
+            else:
                 self.rot_vel = min(self.max_turn_rate * tick / 1000,
                                    (self.rot_vel + self.turn_rate * tick / 1000) * (1 if right_projection < -100 else right_projection/-100))  # TODO: FIX ADJUSTING BASED OFF TICK
 
@@ -231,8 +233,15 @@ class GameObject(Sprite):
             # Turn the turrets, NOT BASED OFF OF TURRET POSITION, BASED OFF OF SHIP POSITION
             for turret in self.turrets:
 
-                turret_slope = math.tan(math.radians(90 + self.rot + turret[0][3]))
-                turret_heading = vmath.normalize((1/turret_slope, -1))
+                turret_slope = math.tan(math.radians(90 + self.rot + turret[0][3]))     # TODO: turret slope calculated incorrectly
+                if -90 < self.rot + turret[0][3] < 90:
+                    turret_heading = vmath.normalize((1 / turret_slope, -1))
+
+                else:
+                    turret_heading = vmath.normalize((-1 / turret_slope, 1))
+
+                turret_right_vector = (-turret_heading[1], turret_heading[0])
+                turret_right_projection = vmath.dot(turret_right_vector, target_local_pos)
 
                 _, t_projection, t_angle = vmath.angle_between(
                     turret_heading,
@@ -240,16 +249,21 @@ class GameObject(Sprite):
                     precomp_dist=target_dist
                 )
 
+                # Visualize turret heading and projection
+                if screen:
+
+                    pygame.draw.line(screen, (150, 150, 150), ap, (ap[0]+turret_heading[0]*100, ap[1]+turret_heading[1]*100), 2)                                                                # Gray = turret_heading
+                    pygame.draw.lines(screen, (150, 150, 255), True, (ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), tap), 2)   # Light blue = ship - turret_right_projection - target triangle
+                    pygame.draw.line(screen, (255, 150, 150), ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), 2)                 # Light red = turret_right_projection
+                    pygame.draw.line(screen, (150, 255, 150), ap, (ap[0]+turret_right_vector[0]*100, ap[1]+turret_right_vector[1]))                                                             # Light green = turret_right_vector
+
                 # Update turret rotations if not gimbal locked
                 if not turret[0][2]:
-                    if t_angle  > turret[0][4]:
-                        turret[0][3] -= turret[0][4]
-
-                    elif t_angle < -turret[0][4]:
-                        turret[0][3] += turret[0][4]
+                    if turret_right_projection >= 0:
+                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 50 else turret_right_projection/50)
 
                     else:
-                        turret[0][3] -= turret[0][3]
+                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 50 else turret_right_projection/50)
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]
