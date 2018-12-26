@@ -255,15 +255,15 @@ class GameObject(Sprite):
                     pygame.draw.line(screen, (150, 150, 150), ap, (ap[0]+turret_heading[0]*100, ap[1]+turret_heading[1]*100), 2)                                                                # Gray = turret_heading
                     pygame.draw.lines(screen, (150, 150, 255), True, (ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), tap), 2)   # Light blue = ship - turret_right_projection - target triangle
                     pygame.draw.line(screen, (255, 150, 150), ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), 2)                 # Light red = turret_right_projection
-                    pygame.draw.line(screen, (150, 255, 150), ap, (ap[0]+turret_right_vector[0]*100, ap[1]+turret_right_vector[1]))                                                             # Light green = turret_right_vector
+                    pygame.draw.line(screen, (150, 255, 150), ap, (ap[0]+turret_right_vector[0]*100, ap[1]+turret_right_vector[1]*100))                                                             # Light green = turret_right_vector
 
                 # Update turret rotations if not gimbal locked
                 if not turret[0][2]:
                     if turret_right_projection >= 0:
-                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 50 else turret_right_projection/50)
+                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 20 else turret_right_projection/20)
 
                     else:
-                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 50 else turret_right_projection/50)
+                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if turret_right_projection < -20 else turret_right_projection/-20)
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]

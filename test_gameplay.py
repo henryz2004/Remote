@@ -11,7 +11,7 @@ def render():
     screen.render((0, 0, 0))
 
 
-s = pygame.display.set_mode((1000, 750))
+s = pygame.display.set_mode((1200, 900))
 screen = Screen(s)
 
 s0 = Scene(screen, active=True)        # Generate random number scene
@@ -47,6 +47,20 @@ test_enemy.set_parent(s0)
 test_enemy.rel_pos = (0, 500, 0, 500)
 test_enemy.update()
 
+test_enemy2 = GameObject(
+    1,
+    GameObject.ACTIVE,
+    GameObject.FIGHTER,
+    target_types=[],
+    stats=(100, 1, (10, 60)),
+    sprite_path="fighter_sprite_turretless.png",
+    sprite_size=(None, 200),
+    turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]]
+)
+test_enemy2.set_parent(s0)
+test_enemy2.rel_pos = (0, 750, 0, 200)
+test_enemy2.update()
+
 clock = pygame.time.Clock()
 
 running = True
@@ -59,4 +73,6 @@ while running:
 
     render()
     test_fighter.tick(tick, screen=s)
+    test_enemy.tick(tick, screen=s)
+    test_enemy2.tick(tick, screen=s)
     pygame.display.flip()
