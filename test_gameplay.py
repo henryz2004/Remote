@@ -11,7 +11,7 @@ def render():
     screen.render((0, 0, 0))
 
 
-s = pygame.display.set_mode((1200, 900))
+s = pygame.display.set_mode((1500, 1200))
 screen = Screen(s)
 
 s0 = Scene(screen, active=True)        # Generate random number scene
@@ -71,8 +71,11 @@ while running:
         if e.type == pygame.QUIT:
             running = False
 
+        elif e.type == pygame.MOUSEMOTION:
+            test_fighter.rel_pos = (0, e.pos[0], 0, e.pos[1])
+
     render()
     test_fighter.tick(tick, screen=s)
-    test_enemy.tick(tick, screen=s)
-    test_enemy2.tick(tick, screen=s)
+    test_enemy.tick(tick)#, screen=s)
+    test_enemy2.tick(tick)#, screen=s)
     pygame.display.flip()

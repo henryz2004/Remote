@@ -45,6 +45,6 @@ def angle_between(heading, point, precomp_dist=None):
 
     projection = dot(point, heading)
 
-    angle = math.degrees(math.acos(projection/dist))
+    angle = math.degrees(math.acos(max(-1, min(1, projection/dist))))
 
     return dist, projection, angle

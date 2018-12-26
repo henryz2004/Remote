@@ -5,11 +5,15 @@
     <bookmark url="file://$PROJECT_DIR$/game.py" description="Constants" line="159" />
     <bookmark url="file://$PROJECT_DIR$/game.py" description="Start Scene" line="150" />
     <bookmark url="file://$PROJECT_DIR$/font_py.py" line="5" mnemonic="9" />
-    <bookmark url="file://$PROJECT_DIR$/gameplay.py" line="222" />
-    <bookmark url="file://$PROJECT_DIR$/gameplay.py" line="280" />
+    <bookmark url="file://$PROJECT_DIR$/gameplay.py" line="312" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="99bb06d8-9d61-4f1a-9663-745b26f00125" name="Default" comment="" />
+    <list default="true" id="99bb06d8-9d61-4f1a-9663-745b26f00125" name="Default" comment="Edited update_ship_controls for better ship rotation. Dampening">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/gameplay.py" afterPath="$PROJECT_DIR$/gameplay.py" />
+      <change beforePath="$PROJECT_DIR$/pyoneer3/vmath.py" afterPath="$PROJECT_DIR$/pyoneer3/vmath.py" />
+      <change beforePath="$PROJECT_DIR$/test_gameplay.py" afterPath="$PROJECT_DIR$/test_gameplay.py" />
+    </list>
     <ignored path="Remote.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -116,8 +120,8 @@
       <file leaf-file-name="test_gameplay.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test_gameplay.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1450">
-              <caret line="60" column="0" lean-forward="false" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+            <state relative-caret-position="1122">
+              <caret line="79" column="27" lean-forward="false" selection-start-line="79" selection-start-column="27" selection-end-line="79" selection-end-column="27" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -128,8 +132,8 @@
       <file leaf-file-name="gameplay.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/gameplay.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1069">
-              <caret line="198" column="0" lean-forward="true" selection-start-line="198" selection-start-column="0" selection-end-line="198" selection-end-column="0" />
+            <state relative-caret-position="1997">
+              <caret line="293" column="91" lean-forward="false" selection-start-line="293" selection-start-column="91" selection-end-line="293" selection-end-column="91" />
               <folding>
                 <element signature="e#146#157#0" expanded="true" />
               </folding>
@@ -141,7 +145,7 @@
         <entry file="file://$PROJECT_DIR$/pyoneer3/vmath.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="1175">
-              <caret line="47" column="51" lean-forward="false" selection-start-line="47" selection-start-column="51" selection-end-line="47" selection-end-column="51" />
+              <caret line="47" column="50" lean-forward="false" selection-start-line="47" selection-start-column="50" selection-end-line="47" selection-end-column="50" />
               <folding />
             </state>
           </provider>
@@ -231,8 +235,8 @@
         <option value="$PROJECT_DIR$/game_stats.txt" />
         <option value="$PROJECT_DIR$/game.py" />
         <option value="$PROJECT_DIR$/pyoneer3/graphics.py" />
-        <option value="$PROJECT_DIR$/test_gameplay.py" />
         <option value="$PROJECT_DIR$/pyoneer3/vmath.py" />
+        <option value="$PROJECT_DIR$/test_gameplay.py" />
         <option value="$PROJECT_DIR$/gameplay.py" />
       </list>
     </option>
@@ -275,6 +279,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -295,7 +300,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="Scratches" />
     </panes>
   </component>
@@ -576,14 +580,35 @@
       <option name="presentableId" value="Default" />
       <updated>1542735223306</updated>
     </task>
-    <task id="LOCAL-00001" summary="Edited gameplay.py, changed ship target tracking from angle-based to projection-based.">
-      <created>1545766904615</created>
+    <task id="LOCAL-00001" summary="Edited update_ship_controls for better ship rotation. Dampening implemented">
+      <created>1545773795404</created>
       <option name="number" value="00001" />
       <option name="presentableId" value="LOCAL-00001" />
       <option name="project" value="LOCAL" />
-      <updated>1545766904615</updated>
+      <updated>1545773795404</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Edited gameplay.py, dampening tweaked.">
+      <created>1545774107221</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1545774107221</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Edited gameplay.py. Mostly fixed turret target seeking. Updated and improved visuals.&#10;&#10;**BUG**: Turret heading/slope is calculated incorrectly. Will fix in next commit">
+      <created>1545785479067</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1545785479067</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Expanded test_gameplay.py to simulate three ships.&#10;&#10;Fixed turret rotation/enemy ship spotting.&#10;&#10;**BUG** Math domain error with acos. To be fixed in future commit">
+      <created>1545793332446</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1545793332447</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TodoView">
@@ -597,17 +622,17 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-11" y="-11" width="3722" height="2182" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.11377899" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22711179" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Statistic" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.1010101" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.19550562" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.18876405" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="2008" y="614" width="1267" height="1355" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.18876405" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="2008" y="614" width="1267" height="1355" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32979262" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" show_stripe_button="true" weight="0.10674157" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" x="879" y="114" width="352" height="332" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.29792616" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" x="879" y="114" width="352" height="332" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16135558" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.16179775" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4060606" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -616,6 +641,7 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Thumbnails" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32921347" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.19550562" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
@@ -661,12 +687,6 @@
               <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
                 <collection />
               </option>
-              <option name="COLUMN_WIDTH">
-                <map>
-                  <entry key="2" value="205" />
-                  <entry key="3" value="208" />
-                </map>
-              </option>
               <option name="COLUMN_ORDER">
                 <list>
                   <option value="0" />
@@ -694,7 +714,11 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Edited gameplay.py, changed ship target tracking from angle-based to projection-based." />
-    <option name="LAST_COMMIT_MESSAGE" value="Edited gameplay.py, changed ship target tracking from angle-based to projection-based." />
+    <MESSAGE value="Edited update_ship_controls for better ship rotation. Dampening implemented" />
+    <MESSAGE value="Edited gameplay.py, dampening tweaked." />
+    <MESSAGE value="Edited gameplay.py. Mostly fixed turret target seeking. Updated and improved visuals.&#10;&#10;**BUG**: Turret heading/slope is calculated incorrectly. Will fix in next commit" />
+    <MESSAGE value="Expanded test_gameplay.py to simulate three ships.&#10;&#10;Fixed turret rotation/enemy ship spotting.&#10;&#10;**BUG** Math domain error with acos. To be fixed in future commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Expanded test_gameplay.py to simulate three ships.&#10;&#10;Fixed turret rotation/enemy ship spotting.&#10;&#10;**BUG** Math domain error with acos. To be fixed in future commit" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -914,16 +938,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_gameplay.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1450">
-          <caret line="60" column="0" lean-forward="false" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pyoneer3/graphics.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="850">
@@ -1011,15 +1025,25 @@
     <entry file="file://$PROJECT_DIR$/pyoneer3/vmath.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1175">
-          <caret line="47" column="51" lean-forward="false" selection-start-line="47" selection-start-column="51" selection-end-line="47" selection-end-column="51" />
+          <caret line="47" column="50" lean-forward="false" selection-start-line="47" selection-start-column="50" selection-end-line="47" selection-end-column="50" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_gameplay.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1122">
+          <caret line="79" column="27" lean-forward="false" selection-start-line="79" selection-start-column="27" selection-end-line="79" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/gameplay.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1069">
-          <caret line="198" column="0" lean-forward="true" selection-start-line="198" selection-start-column="0" selection-end-line="198" selection-end-column="0" />
+        <state relative-caret-position="1997">
+          <caret line="293" column="91" lean-forward="false" selection-start-line="293" selection-start-column="91" selection-end-line="293" selection-end-column="91" />
           <folding>
             <element signature="e#146#157#0" expanded="true" />
           </folding>

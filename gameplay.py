@@ -204,11 +204,11 @@ class GameObject(Sprite):
             # Target is to the right of ship
             if right_projection >= 0:
                 self.rot_vel = max(-self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if right_projection > 100 else right_projection/100))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
+                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if target_angle > 10 else target_angle/10))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
             else:
                 self.rot_vel = min(self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if right_projection < -100 else right_projection/-100))  # TODO: FIX ADJUSTING BASED OFF TICK
+                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if target_angle > 10 else target_angle/10))  # TODO: FIX ADJUSTING BASED OFF TICK
 
 
             # Calculate ship heading (where it's going)
@@ -260,10 +260,10 @@ class GameObject(Sprite):
                 # Update turret rotations if not gimbal locked
                 if not turret[0][2]:
                     if turret_right_projection >= 0:
-                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if turret_right_projection > 20 else turret_right_projection/20)
+                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                     else:
-                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if turret_right_projection < -20 else turret_right_projection/-20)
+                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]
@@ -281,12 +281,6 @@ class GameObject(Sprite):
         if not self.rot_locked:
             self.rot += self.rot_vel
 
-            if self.rot <= -180:
-                self.rot = 360 - self.rot
-
-            elif self.rot > 180:
-                self.rot = self.rot - 360
-
         # Update ship velocity/thrusters
         if self.category == GameObject.ACTIVE:
 
@@ -296,6 +290,18 @@ class GameObject(Sprite):
 
                 if thruster[2]:
                     self.vel = vmath.add(self.vel, (thruster[1]/self.mass*heading))
+
+        # Clamp ship and turret rotation between -180 and 180, TODO: DETERMINE IF NECESSARY
+        if self.rot <= -180:
+            self.rot = 360 - self.rot
+        elif self.rot > 180:
+            self.rot = self.rot - 360
+
+        for turret in self.turrets:
+            if turret[0][3] <= -180:
+                turret[0][3] = 360 - turret[0][3]
+            elif turret[0][3] > 180:
+                turret[0][3] = turret[0][3] - 360
 
         # Update ship position based off of velocity
         self.offset_ship(self.vel)
