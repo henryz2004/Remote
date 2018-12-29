@@ -25,8 +25,8 @@ test_fighter = GameObject(
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[
-        [(0.25, 0.75), "FIGHTER_GUN_MK1", False, 0, 60, False],
-        [(0.75, 0.75), "FIGHTER_GUN_MK1", False, 0, 60, False]
+        [(0.25, 0.75), "FIGHTER_GUN_MK1", False, 0, 32, False],
+        [(0.75, 0.75), "FIGHTER_GUN_MK1", False, 0, 32, False]
     ]
 )
 test_fighter.set_parent(s0)
@@ -74,8 +74,12 @@ while running:
         elif e.type == pygame.MOUSEMOTION:
             test_fighter.rel_pos = (0, e.pos[0], 0, e.pos[1])
 
+        elif e.type == pygame.KEYDOWN:
+            if e.key == pygame.K_ESCAPE:
+                running = False
+
     render()
-    test_fighter.tick(tick, screen=s)
+    test_fighter.tick(tick, screen=s, label="FIGHTER")
     test_enemy.tick(tick)#, screen=s)
     test_enemy2.tick(tick)#, screen=s)
     pygame.display.flip()

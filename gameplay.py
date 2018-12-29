@@ -144,7 +144,7 @@ class GameObject(Sprite):
 
         self.offset((0, offset[0], 0, offset[1]))
 
-    def tick(self, tick, screen=None):
+    def tick(self, tick, screen=None, label=None):
 
         # Update timers
         for timer in self.timers:
@@ -160,18 +160,22 @@ class GameObject(Sprite):
                 if timer[2]:
                     timer[0] = 0
 
-        self.update_ship_controls(tick, screen=screen)
+        self.update_ship_controls(tick, screen=screen, label=label)
 
-    def update_ship_controls(self, tick, screen=None):
+    def update_ship_controls(self, tick, screen=None, label=None):
 
         # If this unit actively seeks out enemy units
         if self.category == GameObject.ACTIVE:
 
             # Find nearest enemy of type
             target, target_dist = self.locate_enemy()
+
+            ap = self.calculate_absolute_position()     # Absolute position of self
+            tap = target.calculate_absolute_position()  # Absolute position of target
+
             target_local_pos = vmath.sub(
-                extract_offsets(target.rel_pos),
-                extract_offsets(self.rel_pos)
+                tap,
+                ap
             )
 
             # Perform series of calculations to control turrets, turn rate, engines, etc.
@@ -187,14 +191,12 @@ class GameObject(Sprite):
             # Determine where the target is relative to self, either to the left or to the right by dotting to right_vector
             right_projection = vmath.dot(right_vector, target_local_pos)
 
-            print("TA:", round(target_angle, 3), "\tRV:", list(map(lambda x: round(x, 3), right_vector)), "\tRP:", round(right_projection))
-
             # Visualize vectors if provided with drawing surface
-            ap = self.calculate_absolute_position()
-            tap = target.calculate_absolute_position()
-
             if screen:
                 pygame.draw.line(screen, (255, 255, 255), ap, (ap[0] + heading[0] * 150, ap[1] + heading[1] * 150), 4)                                                      # White = ship_heading
+
+                # Draw bounding box around self.surf
+                pygame.draw.rect(screen, (255, 255, 0), (ap[0]-self.surf.get_width()/2, ap[1]-self.surf.get_height()/2, self.surf.get_width(), self.surf.get_height()), 1)
 
                 # Draw triangle connecting ship, right_projection, and target
                 pygame.draw.lines(screen, (0, 0, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 4)               # Blue = ship - right_projection - target triangle
@@ -230,32 +232,55 @@ class GameObject(Sprite):
             else:
                 self.activate_thrusters()
 
-            # Turn the turrets, NOT BASED OFF OF TURRET POSITION, BASED OFF OF SHIP POSITION
+            # Turn the turrets based off of turret position
             for turret in self.turrets:
 
-                turret_slope = math.tan(math.radians(90 + self.rot + turret[0][3]))     # TODO: turret slope calculated incorrectly
+                # Calculate absolute XY coordinate of turret
+                turret_pos_scale: XYRatio = turret[0][0]    # Tuple of ratios representing turret position on self sprite
+                turret_surf = turret[1]
+
+                turret_x_unrot = self.surf.get_width() * (turret_pos_scale[0] - 0.5)   # X Position of turret relative to self position *unrotated*
+                turret_y_unrot = self.surf.get_height() * (turret_pos_scale[1] - 0.5)  # Y Position of turret relative to self position *unrotated*
+
+                turret_x_rot = turret_x_unrot * math.cos(math.radians(-self.rot)) - turret_y_unrot * math.sin(math.radians(-self.rot))     # Actual x position of turret relative to self position *rotated*
+                turret_y_rot = turret_y_unrot * math.cos(math.radians(-self.rot)) + turret_x_unrot * math.sin(math.radians(-self.rot))     # Actual y position of turret relative to self position *rotated*
+
+                turret_ap = (ap[0] + turret_x_rot, ap[1] + turret_y_rot)
+
+                turret_slope = math.tan(math.radians(90 + self.rot + turret[0][3]))
                 if -90 < self.rot + turret[0][3] < 90:
                     turret_heading = vmath.normalize((1 / turret_slope, -1))
 
                 else:
                     turret_heading = vmath.normalize((-1 / turret_slope, 1))
 
+                # Calculate position of target relative to turret_ap
+                target_rel_pos = vmath.sub(
+                    tap,
+                    turret_ap
+                )
+
                 turret_right_vector = (-turret_heading[1], turret_heading[0])
-                turret_right_projection = vmath.dot(turret_right_vector, target_local_pos)
+                turret_right_projection = vmath.dot(turret_right_vector, target_rel_pos)
 
                 _, t_projection, t_angle = vmath.angle_between(
                     turret_heading,
-                    target_local_pos,
-                    precomp_dist=target_dist
+                    target_rel_pos
                 )
 
                 # Visualize turret heading and projection
                 if screen:
 
-                    pygame.draw.line(screen, (150, 150, 150), ap, (ap[0]+turret_heading[0]*100, ap[1]+turret_heading[1]*100), 2)                                                                # Gray = turret_heading
-                    pygame.draw.lines(screen, (150, 150, 255), True, (ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), tap), 2)   # Light blue = ship - turret_right_projection - target triangle
-                    pygame.draw.line(screen, (255, 150, 150), ap, (ap[0]+turret_right_vector[0]*turret_right_projection, ap[1]+turret_right_vector[1]*turret_right_projection), 2)                 # Light red = turret_right_projection
-                    pygame.draw.line(screen, (150, 255, 150), ap, (ap[0]+turret_right_vector[0]*100, ap[1]+turret_right_vector[1]*100))                                                             # Light green = turret_right_vector
+                    # Draw unrotated and rotated positions
+                    pygame.draw.circle(screen, (255, 255, 255), (int(ap[0] + turret_x_unrot), int(ap[1] + turret_y_unrot)), 4)
+                    pygame.draw.circle(screen, (255, 255, 255), list(map(int, turret_ap)), 3)
+                    pygame.draw.circle(screen, (255, 0, 255), tap, 5)
+                    pygame.draw.circle(screen, (100, 0, 100), (int(turret_ap[0]+target_rel_pos[0]), int(turret_ap[1]+target_rel_pos[1])), 3)
+
+                    pygame.draw.line(screen, (150, 150, 150), turret_ap, (turret_ap[0]+turret_heading[0]*100, turret_ap[1]+turret_heading[1]*100), 2)                                                                # Gray = turret_heading
+                    pygame.draw.lines(screen, (150, 150, 255), True, (turret_ap, (turret_ap[0]+turret_right_vector[0]*turret_right_projection, turret_ap[1]+turret_right_vector[1]*turret_right_projection), tap), 2)   # Light blue = turret - turret_right_projection - target triangle
+                    pygame.draw.line(screen, (255, 150, 150), turret_ap, (turret_ap[0]+turret_right_vector[0]*turret_right_projection, turret_ap[1]+turret_right_vector[1]*turret_right_projection), 2)                 # Light red = turret_right_projection
+                    pygame.draw.line(screen, (150, 255, 150), turret_ap, (turret_ap[0]+turret_right_vector[0]*100, turret_ap[1]+turret_right_vector[1]*100))                                                             # Light green = turret_right_vector
 
                 # Update turret rotations if not gimbal locked
                 if not turret[0][2]:
@@ -345,18 +370,36 @@ class GameObject(Sprite):
 
     def draw_seq(self):
 
+        bb = False      # Whether or not to draw  bounding boxes
+
         self.surf = self.c_surf.copy()
 
         # Draw turrets and thrusters
         for turret in self.turrets:
+
             turret_position = turret[0][0]
-            turret_rotated_surface = pygame.transform.rotate(turret[1], turret[0][3])
-            self.surf.blit(turret_rotated_surface, (turret_position[0]*self.surf.get_width()-turret_rotated_surface.get_width()/2, turret_position[1]*self.surf.get_height()-turret_rotated_surface.get_height()/2)) # Blit at center
+            turret_sprite = turret[1].copy()
+
+            turret_rotated_surface = pygame.transform.rotate(turret_sprite, turret[0][3])
+
+            # Draw unrotated bounding box around turret
+            if bb:
+                pygame.draw.rect(turret_rotated_surface, (155, 155, 155), (0, 0, turret_rotated_surface.get_width(), turret_rotated_surface.get_height()), 1)
+
+            self.surf.blit(
+                turret_rotated_surface,
+                (turret_position[0]*self.surf.get_width()-turret_rotated_surface.get_width()/2,
+                 turret_position[1]*self.surf.get_height()-turret_rotated_surface.get_height()/2)
+            ) # Blit at center
 
         # TODO: Draw flames coming from fire as thrusters
 
+        # Draw rotated bounding box around self sprite
+        if bb:
+            pygame.draw.rect(self.surf, (255, 255, 255), (0, 0, self.surf.get_width(), self.surf.get_height()), 2)
+
         self.draw_children(False)
-        self.draw()
+        self.draw(bb=bb)
 
         self.update_rect()
 

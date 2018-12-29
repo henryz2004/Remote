@@ -474,7 +474,9 @@ class Sprite(Image, pygame.sprite.Sprite):
         elif self.anchor == 1:
             self.rect.center = self.calculate_absolute_position()
 
-    def draw(self):
+    def draw(self, bb=False):
+        """bb = Bounding box, flag to determine whether or not the bounding box of the sprite will be drawn """
+
         assert self.surf, "Attempted to render UIElement without surface"
         assert self.parent, "Attempted to draw on nothing"
 
@@ -483,6 +485,9 @@ class Sprite(Image, pygame.sprite.Sprite):
             return
 
         rotated_surf = pygame.transform.rotate(self.surf, self.rot)
+
+        if bb:
+            pygame.draw.rect(rotated_surf, (255, 255, 255), (0, 0, rotated_surf.get_width(), rotated_surf.get_height()), 1)
 
         if self.anchor == 0:
             self.parent.surf.blit(rotated_surf, convert_absolute(self.rel_pos, self.parent.surf))
