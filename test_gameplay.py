@@ -81,6 +81,6 @@ while running:
 
     render()
     test_fighter.tick(tick, screen=s, label="FIGHTER")
-    test_enemy.tick(tick, label="ROCKET")#, screen=s)
+    test_enemy.tick(tick, label="ROCKET", screen=s)
     test_enemy2.tick(tick)#, screen=s)
     pygame.display.flip()

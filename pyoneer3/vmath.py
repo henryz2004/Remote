@@ -41,7 +41,7 @@ def magnitude(vector):
 def normalize(vector):
 
     m = magnitude(vector)
-    return [x/m for x in vector]
+    return [x/(m if m else 1)for x in vector]
 
 
 def angle_between(heading, point, precomp_dist=None):

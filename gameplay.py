@@ -180,6 +180,7 @@ class GameObject(Sprite):
             )
 
             # Perform series of calculations to control turrets, turn rate, engines, etc.
+            # TODO: Possible optimization by removing right_vector and projections. Unnecessary
             slope, heading = self.calculate_ship_heading()
             right_vector = (-heading[1], heading[0])        # A vector pointing to the right relative to heading vector and is perpendicular to the heading vector
 
@@ -194,7 +195,8 @@ class GameObject(Sprite):
 
             # Visualize vectors if provided with drawing surface
             if screen:
-                pygame.draw.line(screen, (255, 255, 255), ap, (ap[0] + heading[0] * 150, ap[1] + heading[1] * 150), 4)                                                      # White = ship_heading
+
+                pygame.draw.line(screen, (255, 255, 255), ap, (ap[0] + heading[0] * 150, ap[1] + heading[1] * 150), 4)          # Draw heading                                               # White = ship_heading
 
                 # Draw bounding box around self.surf
                 pygame.draw.rect(screen, (255, 255, 0), (ap[0]-self.surf.get_width()/2, ap[1]-self.surf.get_height()/2, self.surf.get_width(), self.surf.get_height()), 1)
@@ -203,6 +205,23 @@ class GameObject(Sprite):
                 pygame.draw.lines(screen, (0, 0, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 4)               # Blue = ship - right_projection - target triangle
                 pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), 4)   # Draw right_projection   # Red = right_projection
                 pygame.draw.line(screen, (0, 255, 0), ap, (ap[0] + right_vector[0] * 100, ap[1] + right_vector[1] * 100), 3)  # Draw right vector                          # Green = right_vector
+
+                # Velocity vector
+                pygame.draw.line(screen, (255, 255, 255), ap,
+                                 (ap[0] + self.vel[0] * 1000 / tick, ap[1] + self.vel[1] * 1000 / tick),
+                                 5)
+                pygame.draw.line(screen, (0, 0, 0), ap,
+                                 (ap[0] + self.vel[0] * 1000 / tick, ap[1] + self.vel[1] * 1000 / tick),
+                                 3)
+
+                # Cruising vector
+                h = vmath.normalize(self.vel)
+                pygame.draw.line(screen, (255, 0, 0), ap,
+                                 (ap[0] + h[0] * self.cruise_vel, ap[1] + h[1] * self.cruise_vel),
+                                 5)
+                pygame.draw.line(screen, (0, 0, 0), ap,
+                                 (ap[0] + h[0] * self.cruise_vel, ap[1] + h[1] * self.cruise_vel),
+                                 3)
 
             # Target is to the right of ship
             if right_projection >= 0:
@@ -219,7 +238,7 @@ class GameObject(Sprite):
 
             # Only calculate ship heading if ship is traveling
             if speed > 0:
-                d_heading = vmath.normalize((self.vel[0], self.vel[1]))
+                d_heading = vmath.normalize(self.vel)
                 _, d_projection, heading_angle = vmath.angle_between(
                     d_heading,
                     target_local_pos,
@@ -227,9 +246,16 @@ class GameObject(Sprite):
                 )
 
                 # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
-                if target_angle < 10 or target_angle > 350:
-                    if (not (heading_angle < 15 or heading_angle > 345)) or speed < self.cruise_vel * tick / 1000:
+                if target_angle < 5 or target_angle > 355:
+
+                    if speed < self.cruise_vel * tick / 1000:
                         self.toggle_thrusters(True)
+
+                    elif not (heading_angle < 10 or heading_angle > 350):
+                        self.toggle_thrusters(True)
+
+                    else:
+                        self.toggle_thrusters(False)
 
                 else:
                     self.toggle_thrusters(False)
@@ -325,8 +351,6 @@ class GameObject(Sprite):
 
                 if thruster[2]:
                     self.vel = vmath.add(self.vel, vmath.smult((thruster[1]/self.mass)*tick/1000, heading))
-
-                    #print(label, " : ", round(vmath.magnitude(self.vel), 3),"\t",round(self.cruise_vel * tick/1000, 3))
 
         # Clamp ship and turret rotation between -180 and 180, TODO: DETERMINE IF NECESSARY
         if self.rot <= -180:
