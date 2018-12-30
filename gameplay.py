@@ -227,8 +227,9 @@ class GameObject(Sprite):
                 )
 
                 # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
-                if ((not (heading_angle < 15 or heading_angle > 345)) or speed < self.cruise_vel * tick/1000) and (target_angle < 10 or target_angle > 350):
-                    self.toggle_thrusters(True)
+                if target_angle < 10 or target_angle > 350:
+                    if (not (heading_angle < 15 or heading_angle > 345)) or speed < self.cruise_vel * tick / 1000:
+                        self.toggle_thrusters(True)
 
                 else:
                     self.toggle_thrusters(False)
@@ -288,19 +289,24 @@ class GameObject(Sprite):
 
                 # Update turret rotations if not gimbal locked
                 if not turret[0][2]:
+
+                    turret_drot = 0     # Turret delta rotation - how much the turret will rotate by
+
                     if turret_right_projection >= 0:
-                        turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
+                        turret_drot = -(turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                     else:
-                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if t_angle < 360-5 else (360-t_angle)/5)
+                        turret_drot = (turret[0][4] * tick / 1000) * (1 if t_angle < 360-5 else (360-t_angle)/5)
+
+                    turret[0][3] += turret_drot
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]
-                if -10 < t_angle < 10 and target_dist <= turret_range:
-                    turret[0][2] = True
+                if (t_angle < 10 or t_angle > 360-10) and target_dist <= turret_range:
+                    turret[2] = True
 
                 else:
-                    turret[0][2] = False
+                    turret[2] = False
 
         self.update_ship_physics(tick, label=label)  # Actually update ship position, rotation
 
