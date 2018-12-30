@@ -9,10 +9,10 @@ BASIC FIGHTER
 
 import math
 import pygame
+import time
 from pyoneer3 import vmath
 from pyoneer3.graphics import XYSimple, XYComplex
 from pyoneer3.graphics import Sprite
-from pyoneer3.graphics import extract_offsets
 from typing import Callable, List, Tuple, Union
 
 
@@ -69,7 +69,7 @@ class GameObject(Sprite):
                  category,      # ACTIVE, PASSIVE
                  unit_type,
                  target_types,
-                 stats,             # Health, mass, turn
+                 stats,             # Health, mass, turn, cruising speed
                  sprite_path,
                  sprite_size:XYResize,
                  turrets=None,
@@ -85,13 +85,14 @@ class GameObject(Sprite):
         self.unit_type = unit_type
         self.target_types = target_types
 
-        self.health = stats[0]
-        self.mass = stats[1]
-        self.vel = (0, 0)               # Speed/heading
+        self.health = stats["HP"]
+        self.mass = stats["MASS"]
+        self.vel = (0, 0)               # Speed/heading in PIXELS PER FRAME
+        self.cruise_vel = stats["CRUISE"]   # PIXELS PER SECOND
         self.rot_locked = False         # TODO: confine rotation between -180 and 180? necessary or not?
         self.rot_vel = 0                # Current rate of rotation
-        self.turn_rate = stats[2][0]    # How fast the ship can change rotational velocity
-        self.max_turn_rate = stats[2][1]
+        self.turn_rate = stats["TURN"]["AGILITY"]  # How fast the ship can change rotational velocity
+        self.max_turn_rate = stats["TURN"]["MAX_RATE"]
 
         # List containing tuples storing:
         #  - Position of turret
@@ -210,7 +211,7 @@ class GameObject(Sprite):
 
             else:
                 self.rot_vel = min(self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if target_angle > 10 else target_angle/10))  # TODO: FIX ADJUSTING BASED OFF TICK
+                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if target_angle < 360-10 else (360-target_angle)/10))  # TODO: FIX ADJUSTING BASED OFF TICK
 
 
             # Calculate ship heading (where it's going)
@@ -218,19 +219,22 @@ class GameObject(Sprite):
 
             # Only calculate ship heading if ship is traveling
             if speed > 0:
-                d_heading = vmath.normalize((self.vel[1], self.vel[0]))
+                d_heading = vmath.normalize((self.vel[0], self.vel[1]))
                 _, d_projection, heading_angle = vmath.angle_between(
                     d_heading,
                     target_local_pos,
                     precomp_dist=target_dist
                 )
 
-                # If ship isn't traveling towards target and ship is pointed at target, activate engine
-                if -10 < heading_angle < 10 and -10 < target_angle < 10:
-                    self.activate_thrusters()
+                # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
+                if ((not (heading_angle < 15 or heading_angle > 345)) or speed < self.cruise_vel * tick/1000) and (target_angle < 10 or target_angle > 350):
+                    self.toggle_thrusters(True)
+
+                else:
+                    self.toggle_thrusters(False)
 
             else:
-                self.activate_thrusters()
+                self.toggle_thrusters(True)
 
             # Turn the turrets based off of turret position
             for turret in self.turrets:
@@ -288,7 +292,7 @@ class GameObject(Sprite):
                         turret[0][3] -= (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                     else:
-                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
+                        turret[0][3] += (turret[0][4] * tick / 1000) * (1 if t_angle < 360-5 else (360-t_angle)/5)
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]
@@ -298,9 +302,9 @@ class GameObject(Sprite):
                 else:
                     turret[0][2] = False
 
-        self.update_ship_physics(tick)  # Actually update ship position, rotation
+        self.update_ship_physics(tick, label=label)  # Actually update ship position, rotation
 
-    def update_ship_physics(self, tick):
+    def update_ship_physics(self, tick, label=None):
 
         # Rotate the ship (self.rot, not the sprite)
         if not self.rot_locked:
@@ -314,7 +318,9 @@ class GameObject(Sprite):
             for thruster in self.thrusters:
 
                 if thruster[2]:
-                    self.vel = vmath.add(self.vel, (thruster[1]/self.mass*heading))
+                    self.vel = vmath.add(self.vel, vmath.smult((thruster[1]/self.mass)*tick/1000, heading))
+
+                    #print(label, " : ", round(vmath.magnitude(self.vel), 3),"\t",round(self.cruise_vel * tick/1000, 3))
 
         # Clamp ship and turret rotation between -180 and 180, TODO: DETERMINE IF NECESSARY
         if self.rot <= -180:
@@ -363,10 +369,10 @@ class GameObject(Sprite):
 
         return target, target_dist
 
-    def activate_thrusters(self):
+    def toggle_thrusters(self, activation):
 
         for thruster in self.thrusters:
-            thruster[2] = True
+            thruster[2] = activation
 
     def draw_seq(self):
 

@@ -15,6 +15,11 @@ def sub(vector1, vector2):
     return [vector1[i] - vector2[i] for i in range(len(vector1))]
 
 
+def smult(scalar, vector):
+
+    return [scalar * e for e in vector]
+
+
 def mult(vector1, vector2):
 
     assert len(vector1) == len(vector2), "Cannot multiply two vectors of unequal length"

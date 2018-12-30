@@ -21,7 +21,7 @@ test_fighter = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats=(100, 1, (10, 60)),       # TODO FIX TURNING RATE
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[
@@ -38,10 +38,11 @@ test_enemy = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats=(100, 1, (10, 60)),
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
-    turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]]
+    turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]],
+    thrusters=[[(0.5, 1), 1, False]]
 )
 test_enemy.set_parent(s0)
 test_enemy.rel_pos = (0, 500, 0, 500)
@@ -52,7 +53,7 @@ test_enemy2 = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats=(100, 1, (10, 60)),
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]]

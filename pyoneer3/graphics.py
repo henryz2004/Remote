@@ -145,7 +145,7 @@ class UIElement:
 
         # Sum up position_chain to get absolute position of self by unzipping to get list of x and y values and then sum
         individual_xy = list(zip(*position_chain))
-        return XYSimple(sum(individual_xy[0]), sum(individual_xy[1]))
+        return XYSimple(int(sum(individual_xy[0])), int(sum(individual_xy[1])))
 
     def update_rect(self):
 
