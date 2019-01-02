@@ -21,7 +21,7 @@ test_fighter = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "MAX_VEL": 150, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[
@@ -38,7 +38,7 @@ test_enemy = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "MAX_VEL": 150, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]],
@@ -53,7 +53,7 @@ test_enemy2 = GameObject(
     GameObject.ACTIVE,
     GameObject.FIGHTER,
     target_types=[],
-    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
+    stats={"HP": 100, "MASS": 1, "CRUISE": 100, "MAX_VEL": 150, "TURN": {"AGILITY": 10, "MAX_RATE": 60}},
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]]

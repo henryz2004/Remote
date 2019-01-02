@@ -89,10 +89,12 @@ class GameObject(Sprite):
         self.mass = stats["MASS"]
         self.vel = (0, 0)               # Speed/heading in PIXELS PER FRAME
         self.cruise_vel = stats["CRUISE"]   # PIXELS PER SECOND
+        self.max_vel = stats["MAX_VEL"]     # PIXELS PER SECOND
         self.rot_locked = False         # TODO: confine rotation between -180 and 180? necessary or not?
         self.rot_vel = 0                # Current rate of rotation
         self.turn_rate = stats["TURN"]["AGILITY"]  # How fast the ship can change rotational velocity
         self.max_turn_rate = stats["TURN"]["MAX_RATE"]
+        self.retrograde = False
 
         # List containing tuples storing:
         #  - Position of turret
@@ -181,17 +183,25 @@ class GameObject(Sprite):
 
             # Perform series of calculations to control turrets, turn rate, engines, etc.
             # TODO: Possible optimization by removing right_vector and projections. Unnecessary
-            slope, heading = self.calculate_ship_heading()
-            right_vector = (-heading[1], heading[0])        # A vector pointing to the right relative to heading vector and is perpendicular to the heading vector
+            slope, heading = self.calculate_ship_heading()  # Direction ship is facing
+            d_heading = vmath.normalize(self.vel)           # Direction ship is going
+            speed = vmath.magnitude(self.vel)
 
-            _, projection, target_angle = vmath.angle_between(
-                heading,
-                target_local_pos,
-                precomp_dist=target_dist
-            )
+            # If retrograde flag is set, turn to opposite direction of d_heading
+            if self.retrograde:
 
-            # Determine where the target is relative to self, either to the left or to the right by dotting to right_vector
-            right_projection = vmath.dot(right_vector, target_local_pos)
+                _, projection, target_angle = vmath.angle_between(
+                    heading,
+                    vmath.smult(-1, d_heading)
+                )
+
+            else:
+
+                _, projection, target_angle = vmath.angle_between(
+                    heading,
+                    target_local_pos,
+                    precomp_dist=target_dist
+                )
 
             # Visualize vectors if provided with drawing surface
             if screen:
@@ -200,11 +210,6 @@ class GameObject(Sprite):
 
                 # Draw bounding box around self.surf
                 pygame.draw.rect(screen, (255, 255, 0), (ap[0]-self.surf.get_width()/2, ap[1]-self.surf.get_height()/2, self.surf.get_width(), self.surf.get_height()), 1)
-
-                # Draw triangle connecting ship, right_projection, and target
-                pygame.draw.lines(screen, (0, 0, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 4)               # Blue = ship - right_projection - target triangle
-                pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), 4)   # Draw right_projection   # Red = right_projection
-                pygame.draw.line(screen, (0, 255, 0), ap, (ap[0] + right_vector[0] * 100, ap[1] + right_vector[1] * 100), 3)  # Draw right vector                          # Green = right_vector
 
                 # Velocity vector
                 pygame.draw.line(screen, (255, 255, 255), ap,
@@ -224,7 +229,7 @@ class GameObject(Sprite):
                                  3)
 
             # Target is to the right of ship
-            if right_projection >= 0:
+            if target_angle >= 0 and target_angle <= 180:
                 self.rot_vel = max(-self.max_turn_rate * tick / 1000,
                                    (self.rot_vel - self.turn_rate * tick / 1000) * (1 if target_angle > 10 else target_angle/10))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
@@ -232,33 +237,50 @@ class GameObject(Sprite):
                 self.rot_vel = min(self.max_turn_rate * tick / 1000,
                                    (self.rot_vel + self.turn_rate * tick / 1000) * (1 if target_angle < 360-10 else (360-target_angle)/10))  # TODO: FIX ADJUSTING BASED OFF TICK
 
-
-            # Calculate ship heading (where it's going)
-            speed = vmath.magnitude(self.vel)
-
-            # Only calculate ship heading if ship is traveling
+            # Ship thruster control
             if speed > 0:
-                d_heading = vmath.normalize(self.vel)
-                _, d_projection, heading_angle = vmath.angle_between(
-                    d_heading,
-                    target_local_pos,
-                    precomp_dist=target_dist
-                )
 
-                # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
-                if target_angle < 5 or target_angle > 355:
+                # If retrograde flag set, burn retrograde until speed < cruising speed/2
+                if self.retrograde:
 
-                    if speed < self.cruise_vel * tick / 1000:
-                        self.toggle_thrusters(True)
+                    if speed*1000/tick >= 3*self.cruise_vel/4:
 
-                    elif not (heading_angle < 10 or heading_angle > 350):
-                        self.toggle_thrusters(True)
+                        if target_angle < 5 or target_angle > 355:
+                            self.toggle_thrusters(True)
+
+                        else:
+                            self.toggle_thrusters(False)
 
                     else:
-                        self.toggle_thrusters(False)
+                        self.retrograde = False
 
                 else:
-                    self.toggle_thrusters(False)
+
+                    if speed*1000/tick >= self.max_vel:
+                        self.retrograde = True
+
+                    else:
+
+                        _, d_projection, heading_angle = vmath.angle_between(
+                            d_heading,
+                            target_local_pos,
+                                precomp_dist=target_dist
+                            )
+
+                        # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
+                        if target_angle < 5 or target_angle > 355:
+
+                            if speed < self.cruise_vel * tick / 1000:
+                                self.toggle_thrusters(True)
+
+                            elif not (heading_angle < 10 or heading_angle > 350):
+                                self.toggle_thrusters(True)
+
+                            else:
+                                self.toggle_thrusters(False)
+
+                        else:
+                            self.toggle_thrusters(False)
 
             else:
                 self.toggle_thrusters(True)
