@@ -62,6 +62,16 @@ class GameObject(Sprite):
         }   # TODO: Shot image
     }
 
+    # Image path dictionary
+    IPD = {
+        "EXHAUST": {
+            "simplejet": {
+                "SRC": "flames_fighter.png",
+                "SIZE": (None, 30)
+            }
+        }
+    }
+
     GAME_OBJECTS = pygame.sprite.Group()
 
     def __init__(self,
@@ -105,13 +115,18 @@ class GameObject(Sprite):
         #  - Automatic turret timer
         self.turrets: List[List[List[XYRatio, str, bool, int, int, bool], pygame.Surface, bool]] \
             = [[turret, None, False] for turret in turrets] if turrets else []      # Last bool for flag marking wheter turret should be fired
-        self.thrusters: List[List[XYRatio, int, bool]] \
-            = thrusters if thrusters else []  # List of position of thruster, thrust, and active
+
+        # - Position
+        # - Engine fire type (what the flames coming out look like)
+        # - Thrust  # TODO: Set up initializing thruster sprites
+        self.thrusters: List[List[List[XYRatio, str, int], pygame.Surface, bool]] \
+            = [[thruster, None, False] for thruster in thrusters]if thrusters else []  # Stats, sprite, active
 
         # List of timers (current tick, duration, whether to automatically reset current tick after reaching duration callback)
         self.timers: List[List[int, int, bool, Callable]] = timers if timers else []
 
         self.load_turret_images()
+        self.load_exhaust_images()
         self.set_turret_timers()
 
     def load_turret_images(self):
@@ -120,6 +135,15 @@ class GameObject(Sprite):
 
             go_reference = GameObject.GUN_STATS[turret[0][1]]    # Turret stats reference
             turret[1] = resize(pygame.image.load(go_reference["TURRET_IMAGE"]).convert_alpha(), go_reference["TURRET_SIZE"])
+
+    def load_exhaust_images(self):
+
+        for thruster in self.thrusters:
+
+            ipd_ref = GameObject.IPD["EXHAUST"][thruster[0][1]]     # Get image-path-dictionary reference for image path and size of image
+            img_path = ipd_ref["SRC"]
+            img_scale = ipd_ref["SIZE"]
+            thruster[1] = resize(pygame.image.load(img_path).convert_alpha(), img_scale)
 
     def set_turret_timers(self):        # TODO THIS AND NEXT FUNCTION, flag to set whether turret should be shot based off of angle
 
@@ -183,12 +207,14 @@ class GameObject(Sprite):
 
             # Perform series of calculations to control turrets, turn rate, engines, etc.
             # TODO: Possible optimization by removing right_vector and projections. Unnecessary
-            slope, heading = self.calculate_ship_heading()  # Direction ship is facing
-            d_heading = vmath.normalize(self.vel)           # Direction ship is going
+            slope, heading = self.calculate_ship_heading()
+            d_heading = vmath.normalize(self.vel)
+            right_vector = (-heading[1], heading[0])        # A vector pointing to the right relative to heading vector and is perpendicular to the heading vector
             speed = vmath.magnitude(self.vel)
 
-            # If retrograde flag is set, turn to opposite direction of d_heading
             if self.retrograde:
+
+                right_projection = vmath.dot(right_vector, (-100*d_heading[0], -100*d_heading[1]))
 
                 _, projection, target_angle = vmath.angle_between(
                     heading,
@@ -196,6 +222,8 @@ class GameObject(Sprite):
                 )
 
             else:
+
+                right_projection = vmath.dot(right_vector, target_local_pos)
 
                 _, projection, target_angle = vmath.angle_between(
                     heading,
@@ -210,6 +238,11 @@ class GameObject(Sprite):
 
                 # Draw bounding box around self.surf
                 pygame.draw.rect(screen, (255, 255, 0), (ap[0]-self.surf.get_width()/2, ap[1]-self.surf.get_height()/2, self.surf.get_width(), self.surf.get_height()), 1)
+
+                # Draw triangle connecting ship, right_projection, and target
+                pygame.draw.lines(screen, (0, 0, 255), True, (ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), tap), 4)               # Blue = ship - right_projection - target triangle
+                pygame.draw.line(screen, (255, 0, 0), ap, (ap[0]+right_vector[0]*right_projection, ap[1]+right_vector[1]*right_projection), 4)   # Draw right_projection   # Red = right_projection
+                pygame.draw.line(screen, (0, 255, 0), ap, (ap[0] + right_vector[0] * 100, ap[1] + right_vector[1] * 100), 3)  # Draw right vector                          # Green = right_vector
 
                 # Velocity vector
                 pygame.draw.line(screen, (255, 255, 255), ap,
@@ -229,23 +262,23 @@ class GameObject(Sprite):
                                  3)
 
             # Target is to the right of ship
-            if target_angle >= 0 and target_angle <= 180:
-                self.rot_vel = max(-self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel - self.turn_rate * tick / 1000) * (1 if target_angle > 10 else target_angle/10))  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
+            if right_projection >= 0:
+                rot_change = vmath.clamp(-(target_angle+self.rot_vel/(self.turn_rate*tick/1000))*tick/1000, -self.turn_rate * tick / 1000, self.turn_rate * tick / 1000)  # TODO: make turn rate magnitude based off of target_angle (larger angles = larger turn velocities) (somewhat implemented)
 
             else:
-                self.rot_vel = min(self.max_turn_rate * tick / 1000,
-                                   (self.rot_vel + self.turn_rate * tick / 1000) * (1 if target_angle < 360-10 else (360-target_angle)/10))  # TODO: FIX ADJUSTING BASED OFF TICK
+                rot_change = vmath.clamp((target_angle-self.rot_vel/(self.turn_rate*tick/1000))*tick/1000, -self.turn_rate * tick / 1000, self.turn_rate * tick / 1000)
+
+            self.rot_vel = vmath.clamp(self.rot_vel+rot_change, -self.max_turn_rate*tick/1000, self.max_turn_rate*tick/1000)
 
             # Ship thruster control
             if speed > 0:
 
-                # If retrograde flag set, burn retrograde until speed < cruising speed/2
+                # If retrograde flag set, burn retrograde until speed < 2/3 * cruising speed
                 if self.retrograde:
 
-                    if speed*1000/tick >= 3*self.cruise_vel/4:
+                    if speed*1000/tick >= 2*self.cruise_vel/3:
 
-                        if target_angle < 5 or target_angle > 355:
+                        if target_angle < 10:
                             self.toggle_thrusters(True)
 
                         else:
@@ -268,12 +301,12 @@ class GameObject(Sprite):
                             )
 
                         # If ship isn't traveling towards target and ship is pointed at target, and ship is traveling under cruising speed, activate engine
-                        if target_angle < 5 or target_angle > 355:
+                        if target_angle < 10:
 
                             if speed < self.cruise_vel * tick / 1000:
                                 self.toggle_thrusters(True)
 
-                            elif not (heading_angle < 10 or heading_angle > 350):
+                            elif not (heading_angle < 10):
                                 self.toggle_thrusters(True)
 
                             else:
@@ -292,13 +325,7 @@ class GameObject(Sprite):
                 turret_pos_scale: XYRatio = turret[0][0]    # Tuple of ratios representing turret position on self sprite
                 turret_surf = turret[1]
 
-                turret_x_unrot = self.surf.get_width() * (turret_pos_scale[0] - 0.5)   # X Position of turret relative to self position *unrotated*
-                turret_y_unrot = self.surf.get_height() * (turret_pos_scale[1] - 0.5)  # Y Position of turret relative to self position *unrotated*
-
-                turret_x_rot = turret_x_unrot * math.cos(math.radians(-self.rot)) - turret_y_unrot * math.sin(math.radians(-self.rot))     # Actual x position of turret relative to self position *rotated*
-                turret_y_rot = turret_y_unrot * math.cos(math.radians(-self.rot)) + turret_x_unrot * math.sin(math.radians(-self.rot))     # Actual y position of turret relative to self position *rotated*
-
-                turret_ap = (ap[0] + turret_x_rot, ap[1] + turret_y_rot)
+                turret_x_unrot, turret_y_unrot, *_, turret_ap = self.calculate_rotated_position_of(turret_pos_scale, origin_ap=ap)
 
                 turret_slope = math.tan(math.radians(90 + self.rot + turret[0][3]))
                 if -90 < self.rot + turret[0][3] < 90:
@@ -344,13 +371,13 @@ class GameObject(Sprite):
                         turret_drot = -(turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                     else:
-                        turret_drot = (turret[0][4] * tick / 1000) * (1 if t_angle < 360-5 else (360-t_angle)/5)
+                        turret_drot = (turret[0][4] * tick / 1000) * (1 if t_angle > 5 else t_angle/5)
 
                     turret[0][3] += turret_drot
 
                 # Set fire marker if t_angle within certain bounds and in range
                 turret_range = GameObject.GUN_STATS[turret[0][1]]["RANGE"]
-                if (t_angle < 10 or t_angle > 360-10) and target_dist <= turret_range:
+                if (t_angle < 10) and target_dist <= turret_range:
                     turret[2] = True
 
                 else:
@@ -372,7 +399,7 @@ class GameObject(Sprite):
             for thruster in self.thrusters:
 
                 if thruster[2]:
-                    self.vel = vmath.add(self.vel, vmath.smult((thruster[1]/self.mass)*tick/1000, heading))
+                    self.vel = vmath.add(self.vel, vmath.smult((thruster[0][2]/self.mass)*tick/1000, heading))
 
         # Clamp ship and turret rotation between -180 and 180, TODO: DETERMINE IF NECESSARY
         if self.rot <= -180:
@@ -389,6 +416,17 @@ class GameObject(Sprite):
         # Update ship position based off of velocity
         self.offset_ship(self.vel)
 
+    def ratio_to_offset_center(self, ratio):
+        """Similar to to_simple() but with no offset and relative to the center of self (self.rel_pos)"""
+
+        return (self.surf.get_width() * (ratio[0] - 0.5),
+                self.surf.get_height() * (ratio[1] - 0.5))
+
+    def complex_to_offset_center(self, xy_complex):
+
+        return (xy_complex[0] + self.surf.get_width() * (xy_complex[1] - 0.5),
+                xy_complex[2] + self.surf.get_height() * (xy_complex[3] - 0.5))
+
     def calculate_ship_heading(self):
 
         # Calculate ship direction (where it's pointed)
@@ -400,6 +438,27 @@ class GameObject(Sprite):
             heading = vmath.normalize((-1/slope, 1))
 
         return slope, heading
+
+    def calculate_rotated_position_of(self, local_pos, origin_ap=None):
+        "Returns a variety of variables containing information about position relative to self when rotation is applied"
+
+        ap = origin_ap if origin_ap else self.calculate_absolute_position()
+
+        if len(local_pos) == 2:
+            rel_x_unrot, rel_y_unrot = self.ratio_to_offset_center(local_pos)
+
+        elif len(local_pos) == 4:
+            rel_x_unrot, rel_y_unrot = self.complex_to_offset_center(local_pos)
+
+        else:
+            raise ValueError("local_pos argument must be tuple of length 2 or 4 (ratio or xycomplex). Current length:", len(local_pos))
+
+        rel_x_rot = rel_x_unrot * math.cos(math.radians(-self.rot)) - rel_y_unrot * math.sin(math.radians(-self.rot))
+        rel_y_rot = rel_y_unrot * math.cos(math.radians(-self.rot)) + rel_x_unrot * math.sin(math.radians(-self.rot))
+
+        ap_rot = (ap[0] + rel_x_rot, ap[1] + rel_y_rot)
+
+        return rel_x_unrot, rel_y_unrot, rel_x_rot, rel_y_rot, ap_rot
 
     def locate_enemy(self):
 
@@ -435,8 +494,8 @@ class GameObject(Sprite):
         # Draw turrets and thrusters
         for turret in self.turrets:
 
-            turret_position = turret[0][0]
             turret_sprite = turret[1].copy()
+            turret_position = turret[0][0]
 
             turret_rotated_surface = pygame.transform.rotate(turret_sprite, turret[0][3])
 
@@ -450,7 +509,23 @@ class GameObject(Sprite):
                  turret_position[1]*self.surf.get_height()-turret_rotated_surface.get_height()/2)
             ) # Blit at center
 
-        # TODO: Draw flames coming from fire as thrusters
+        # Draw thruster exhaust on parent surface because this will likely surpass the clipping of self surface
+        for thruster in self.thrusters:
+
+            exhaust_sprite = thruster[1].copy()
+            rotated_exhaust = pygame.transform.rotate(exhaust_sprite, self.rot)
+
+            # Offset so that the anchor point is top center
+            thruster_position = (0, thruster[0][0][0], exhaust_sprite.get_height()/2, thruster[0][0][1])
+
+            *_, thruster_draw_position = self.calculate_rotated_position_of(thruster_position)
+
+            if thruster[2]:
+                self.parent.surf.blit(
+                    rotated_exhaust,
+                    (thruster_draw_position[0]-rotated_exhaust.get_width()/2,
+                     thruster_draw_position[1]-rotated_exhaust.get_height()/2,)
+                )
 
         # Draw rotated bounding box around self sprite
         if bb:

@@ -8,7 +8,7 @@ XYComplex = namedtuple('XYComplex', 'xScale xOffset yScale yOffset')
 XYSimple = namedtuple('XYSimple', 'xOffset yOffset')
 
 
-def convert_absolute(coord: XYComplex, surf: pygame.Surface) -> XYSimple:
+def to_simple(coord: XYComplex, surf: pygame.Surface) -> XYSimple:
 
     return XYSimple(coord[1] + surf.get_width() * coord[0],
                     coord[3] + surf.get_height() * coord[2])
@@ -139,7 +139,7 @@ class UIElement:
         position_chain: List[XYSimple] = []
         current_object = self
         while isinstance(current_object, UIElement):
-            position_chain.append(convert_absolute(current_object.rel_pos, current_object.parent.surf))
+            position_chain.append(to_simple(current_object.rel_pos, current_object.parent.surf))
 
             current_object = current_object.parent
 
@@ -184,7 +184,7 @@ class UIElement:
         if not self.visible:
             return
 
-        self.parent.surf.blit(self.surf, convert_absolute(self.rel_pos, self.parent.surf))
+        self.parent.surf.blit(self.surf, to_simple(self.rel_pos, self.parent.surf))
 
     def draw_seq(self):
 
@@ -314,7 +314,7 @@ class ScrollingFrame(UIElement):
 
     def update(self):
 
-        window_size_simple: XYSimple = convert_absolute(self.window_size, self.parent.surf)
+        window_size_simple: XYSimple = to_simple(self.window_size, self.parent.surf)
 
         # Move contents of scrolling frame
         self.window = pygame.Surface(window_size_simple, pygame.SRCALPHA)
@@ -344,7 +344,7 @@ class ScrollingFrame(UIElement):
         if not self.visible:
             return
 
-        window_size_simple: XYSimple = convert_absolute(self.window_size, self.parent.surf)
+        window_size_simple: XYSimple = to_simple(self.window_size, self.parent.surf)
         scrollbar_progress = -self.scroll_pos / self.scroll_limits[1]  # Percent scrollbar should be down the screen
         scrollbar_freedom = (window_size_simple[1] - self.scrollbar_padding*2)
 
@@ -354,13 +354,13 @@ class ScrollingFrame(UIElement):
         if self.show_scrollbar and self.scrollbar_surf.get_height() < scrollbar_freedom:
             self.window.blit(
                 self.scrollbar_surf,
-                convert_absolute(
+                to_simple(
                     (1, -int(self.scrollbar_padding) - self.scrollbar_width,
                      0, int(self.scrollbar_padding) + scrollbar_progress * scrollbar_freedom),
                     self.window
                 )
             )
-        self.parent.surf.blit(self.window, convert_absolute(self.rel_pos, self.parent.surf))
+        self.parent.surf.blit(self.window, to_simple(self.rel_pos, self.parent.surf))
 
     def scroll_handler(self, uie, event, tick):
 
@@ -369,13 +369,13 @@ class ScrollingFrame(UIElement):
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:           # Scroll up
-                absolute_window_size = convert_absolute(self.window_size, self.parent.surf)
+                absolute_window_size = to_simple(self.window_size, self.parent.surf)
                 self.scroll_pos += min(
                     self.scroll_speed, -self.scroll_pos
                 )
 
             elif event.button == 5:         # Scroll down
-                absolute_window_size = convert_absolute(self.window_size, self.parent.surf)
+                absolute_window_size = to_simple(self.window_size, self.parent.surf)
 
                 if absolute_window_size[1] < self.scroll_limits[1]:
                     self.scroll_pos -= min(
@@ -490,8 +490,8 @@ class Sprite(Image, pygame.sprite.Sprite):
             pygame.draw.rect(rotated_surf, (255, 255, 255), (0, 0, rotated_surf.get_width(), rotated_surf.get_height()), 1)
 
         if self.anchor == 0:
-            self.parent.surf.blit(rotated_surf, convert_absolute(self.rel_pos, self.parent.surf))
+            self.parent.surf.blit(rotated_surf, to_simple(self.rel_pos, self.parent.surf))
 
         else:
-            x, y = convert_absolute(self.rel_pos, self.parent.surf)
+            x, y = to_simple(self.rel_pos, self.parent.surf)
             self.parent.surf.blit(rotated_surf, (x - rotated_surf.get_width()/2, y - rotated_surf.get_height()/2))

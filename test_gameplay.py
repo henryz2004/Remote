@@ -42,7 +42,7 @@ test_enemy = GameObject(
     sprite_path="fighter_sprite_turretless.png",
     sprite_size=(None, 200),
     turrets=[[(0.5, 0.5), "FIGHTER_GUN_MK1", False, 0, 60, False]],
-    thrusters=[[(0.5, 1), 1, False]]
+    thrusters=[[(0.5, 1), "simplejet", 1]]
 )
 test_enemy.set_parent(s0)
 test_enemy.rel_pos = (0, 500, 0, 500)
@@ -82,5 +82,5 @@ while running:
     render()
     test_fighter.tick(tick, screen=s, label="FIGHTER")
     test_enemy.tick(tick, label="ROCKET", screen=s)
-    test_enemy2.tick(tick)#, screen=s)
+    test_enemy2.tick(tick, screen=s)
     pygame.display.flip()
