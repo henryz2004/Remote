@@ -12,7 +12,7 @@ import pygame
 import time
 from pyoneer3 import vmath
 from pyoneer3.graphics import XYSimple, XYComplex
-from pyoneer3.graphics import Sprite
+from pyoneer3.graphics import Sprite, ppm_detected
 from typing import Callable, List, Tuple, Union
 
 
@@ -41,6 +41,7 @@ def resize(surf: pygame.Surface, size: XYResize):
 
 
 class GameObject(Sprite):
+    # TODO: Refactor out unnecessary methods, add music/sound capabilities by passing in mixer argument in tick
 
     # Unit behavioral categories
     ACTIVE = 0
@@ -57,7 +58,8 @@ class GameObject(Sprite):
              "FIRERATE": 60,
              "TURRET_IMAGE": "fighter_turret.png",
              "TURRET_SIZE" : (None, 120),
-             "SHOT_IMAGE": None,
+             "SHOT_IMAGE": None,            # TODO: More shot functionality/customizability
+             "SHOT_SPEED": 200,             # Pixels per second
              "RANGE": 250       # Unit in pixels
         }   # TODO: Shot image
     }
@@ -81,7 +83,7 @@ class GameObject(Sprite):
                  target_types,
                  stats,             # Health, mass, turn, cruising speed
                  sprite_path,
-                 sprite_size:XYResize,
+                 sprite_size: XYResize,
                  turrets=None,
                  thrusters=None,
                  timers=None):
@@ -96,6 +98,7 @@ class GameObject(Sprite):
         self.target_types = target_types
 
         self.health = stats["HP"]
+        self.max_health = self.health   # Stores original hp value for things like health bar, etc.
         self.mass = stats["MASS"]
         self.vel = (0, 0)               # Speed/heading in PIXELS PER FRAME
         self.cruise_vel = stats["CRUISE"]   # PIXELS PER SECOND
@@ -120,7 +123,7 @@ class GameObject(Sprite):
         # - Engine fire type (what the flames coming out look like)
         # - Thrust  # TODO: Set up initializing thruster sprites
         self.thrusters: List[List[List[XYRatio, str, int], pygame.Surface, bool]] \
-            = [[thruster, None, False] for thruster in thrusters]if thrusters else []  # Stats, sprite, active
+            = [[thruster, None, False] for thruster in thrusters] if thrusters else []  # Stats, sprite, active
 
         # List of timers (current tick, duration, whether to automatically reset current tick after reaching duration callback)
         self.timers: List[List[int, int, bool, Callable]] = timers if timers else []
@@ -153,17 +156,15 @@ class GameObject(Sprite):
             gun_stats = GameObject.GUN_STATS[turret[0][1]]
 
             if turret_stats[-1]:
-                self.timers.append([0, gun_stats["FIRERATE"]*1000, False, self.turret_fire_callback(i, len(self.timers))])
+                self.timers.append([0, 60000/gun_stats["FIRERATE"], False, self.turret_fire_callback(i, len(self.timers))])
 
     def turret_fire_callback(self, turret_index, timer_index):
 
-        def callback(current_tick, duration):
+        def callback(current_tick):
 
             turret = self.turrets[turret_index]
             if turret[2]:
-                print("PEW")
-
-                self.timers[timer_index][0] = 0
+                self.timers[timer_index][0] = 0     # TODO: Turret fire
 
         return callback
 
@@ -175,13 +176,11 @@ class GameObject(Sprite):
 
         # Update timers
         for timer in self.timers:
-            print("Updating timer")
 
             timer[0] += tick
 
             # If time reached call callback
             if timer[0] >= timer[1]:
-                print("Calling timer callback")
                 timer[3](tick)
 
                 if timer[2]:
@@ -320,6 +319,9 @@ class GameObject(Sprite):
 
             # Turn the turrets based off of turret position
             for turret in self.turrets:
+                if turret[0][2]:    # If gimbal locked then don't pivot turrets
+                    print(turret)
+                    continue
 
                 # Calculate absolute XY coordinate of turret
                 turret_pos_scale: XYRatio = turret[0][0]    # Tuple of ratios representing turret position on self sprite
@@ -416,6 +418,23 @@ class GameObject(Sprite):
         # Update ship position based off of velocity
         self.offset_ship(self.vel)
 
+    def receive_damage(self, damage, mixer=None):       # Mixer is for sounds and sound effects
+
+        # Take away damage from health and then handle destruction if health is 0 or less
+        self.health -= damage
+
+        if self.health <= 0:
+            self.destroy(mixer=mixer)
+
+    def destroy(self, explosion=True, mixer=None):
+
+        # Draw any explosion graphics, etc., remove self from sprite groups, and unparent self to stop rendering it
+        if explosion:
+            pass    # TODO
+
+        self.kill()     # Remove from groups
+        self.parent = None
+
     def ratio_to_offset_center(self, ratio):
         """Similar to to_simple() but with no offset and relative to the center of self (self.rel_pos)"""
 
@@ -487,9 +506,11 @@ class GameObject(Sprite):
 
     def draw_seq(self):
 
-        bb = False      # Whether or not to draw  bounding boxes
+        bb = True      # Whether or not to draw  bounding boxes
+        draw_mask = False
 
         self.surf = self.c_surf.copy()
+        rotated_sprite = pygame.transform.rotate(self.surf, self.rot)   # Used for mask updating
 
         # Draw turrets and thrusters
         for turret in self.turrets:
@@ -516,7 +537,7 @@ class GameObject(Sprite):
             rotated_exhaust = pygame.transform.rotate(exhaust_sprite, self.rot)
 
             # Offset so that the anchor point is top center
-            thruster_position = (0, thruster[0][0][0], exhaust_sprite.get_height()/2, thruster[0][0][1])
+            thruster_position = (0, thruster[0][0][0], exhaust_sprite.get_height()/2-2, thruster[0][0][1])
 
             *_, thruster_draw_position = self.calculate_rotated_position_of(thruster_position)
 
@@ -530,11 +551,67 @@ class GameObject(Sprite):
         # Draw rotated bounding box around self sprite
         if bb:
             pygame.draw.rect(self.surf, (255, 255, 255), (0, 0, self.surf.get_width(), self.surf.get_height()), 2)
+            pygame.draw.rect(self.parent.surf, (255, 255, 255), self.rect, 2)
 
         self.draw_children(False)
         self.draw(bb=bb)
 
         self.update_rect()
+
+        if self.has_mask:
+            self.mask = pygame.mask.from_surface(rotated_sprite)
+
+        if draw_mask:
+            olist = self.mask.outline()
+            pygame.draw.polygon(self.parent.surf, (200, 150, 150), list(map(lambda point: (point[0]+self.rect.topleft[0], point[1]+self.rect.topleft[1]), olist)), 0)
+
+
+class Projectile(Sprite):
+
+    PROJECTILES = pygame.sprite.Group()
+
+    def __init__(self,
+                 team,
+                 stats,     # Damage, travel velocity (vector in pixels per second)
+                 sprite,    # Either a string (filepath) or surface
+                 sprite_size: XYResize,
+                 static_mask=True):
+
+        super().__init__((0, 0, 0, 0), sprite)
+        Projectile.PROJECTILES.add(self)
+        self.surf = resize(self.surf, sprite_size)
+
+        self.team = team
+
+        self.damage = stats["DAMAGE"]
+        self.vel = stats["VEL"]         # Velocity in pixels per second
+
+        self.static_mask = static_mask      # Whether or not to update mask every tick()
+
+    def tick(self, tick, screen=None, mixer=None):      # Mixer is for sound effects
+
+        # Test for collisions and move projectile
+        self.handle_gameobject_interactions(mixer=mixer)   # Handle GameObject collision with this
+        self.update_physics(tick)
+
+    def handle_gameobject_interactions(self, mixer=None):
+
+        go_collision = pygame.sprite.spritecollideany(self, GameObject.GAME_OBJECTS, ppm_detected)
+
+        if go_collision:
+
+            # Damage ship if ship is not on same team as this
+            if go_collision.team != self.team:
+                go_collision.receive_damage(self.damage)    # TODO: Implement
+
+                self.kill()     # TODO: Play hit music
+                self.parent = None
+
+    def update_physics(self, tick):
+
+        # Add velocity to positional offsets
+        self.rel_pos[1] += self.vel[0] * tick/1000
+        self.rel_pos[3] += self.vel[1] * tick / 1000
 
 # Actual unit declarations
 # [[energy_cost, material_Cost, desc, icon_image, icon_size], [args], [kwargs]]

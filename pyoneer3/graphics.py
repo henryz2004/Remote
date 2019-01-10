@@ -43,6 +43,24 @@ def clamp_color(rgb):
     return r, g, b
 
 
+def ppm_collide(this, other) -> tuple:
+    """Checks for pixel-perfect collision with another object that has a rect and a mask. Returns collision point or None"""
+    # TODO: Optimization absolute position does not need to be frequently calculated because position information is stored in self.rect
+
+    other_rel_x = other.rect.topleft[0] - this.rect.topleft[0]
+    other_rel_y = other.rect.topleft[1] - this.rect.topleft[1]
+
+    overlap = this.mask.overlap(other.mask, (other_rel_x, other_rel_y))
+
+    return (overlap[0] + this.rect.topleft[0], overlap[1] + this.rect.topleft[1]) if overlap else None
+
+
+def ppm_detected(this, other) -> bool:
+    """Identical as ppm_collide() but returns a boolean"""
+
+    collision = ppm_collide(this, other)
+    return bool(collision)
+
 class Screen:
 
     def __init__(self, screen):
@@ -447,18 +465,25 @@ class Text(UIElement):
 class Image(UIElement):
 
     def __init__(self, pos: XYComplex, image_path, render_priority=1):
-        super().__init__(pos, pygame.image.load(image_path).convert_alpha(), render_priority)
+        if isinstance(image_path, str):
+            super().__init__(pos, pygame.image.load(image_path).convert_alpha(), render_priority)
+        else:
+            super().__init__(pos, image_path, render_priority)
 
         self.image_path = image_path
 
 
 class Sprite(Image, pygame.sprite.Sprite):
 
-    def __init__(self, pos: XYComplex, image_path, anchor=1, render_priority=1):
+    def __init__(self, pos: XYComplex, image_path, anchor=1, render_priority=1, mask=True):
         super().__init__(pos, image_path, render_priority)
 
         self.anchor = anchor
         self.rot = 0  # Sprite rotation
+
+        self.has_mask = mask
+        if self.has_mask:
+            self.mask = None
 
     def update_rect(self):
 
@@ -473,6 +498,13 @@ class Sprite(Image, pygame.sprite.Sprite):
         # Anchor at mid:
         elif self.anchor == 1:
             self.rect.center = self.calculate_absolute_position()
+
+    def update(self):
+
+        super().update()
+
+        if self.has_mask:
+            self.mask = pygame.mask.from_surface(self.surf)     # Update sprite mask
 
     def draw(self, bb=False):
         """bb = Bounding box, flag to determine whether or not the bounding box of the sprite will be drawn """
